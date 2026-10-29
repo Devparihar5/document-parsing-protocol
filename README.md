@@ -1,6 +1,6 @@
 # Document Parsing Protocol (DPP)
 
-A Python/FastAPI starter for page-by-page document parsing with Google's Gemini vision models. It aims to produce faithful Markdown transcripts guided by the project's DPP reference notes, including HTML tables and preservation of visible page content.
+A Python/FastAPI starter for page-by-page document parsing with any vision model available through an OpenAI-compatible Chat Completions API. It aims to produce faithful Markdown transcripts guided by the project's DPP reference notes, including HTML tables and preservation of visible page content.
 
 > **Important:** This is an implementation guided by a project-maintained reference, not a claim of formal certification or guaranteed protocol compliance. Validate output against the exact specification version adopted by your project.
 
@@ -8,9 +8,9 @@ A Python/FastAPI starter for page-by-page document parsing with Google's Gemini 
 
 - PDF, PNG, JPEG, and WebP uploads
 - PDF rendering into ordered page images
-- Gemini vision parsing, one page at a time
+- OpenAI-compatible vision parsing, one page at a time
 - Markdown prose and HTML tables
-- Configurable Gemini model
+- Configurable API endpoint, model, and credentials
 - Upload size and page-count limits
 - Structured response with per-page output and combined Markdown
 - Health endpoint and basic tests
@@ -18,7 +18,7 @@ A Python/FastAPI starter for page-by-page document parsing with Google's Gemini 
 ## Requirements
 
 - Python 3.11+
-- Google Gemini API key
+- API key for your OpenAI-compatible endpoint
 
 ## Run locally
 
@@ -30,7 +30,7 @@ source .venv/bin/activate
 
 pip install -r requirements-dev.txt
 cp .env.example .env
-# Set GEMINI_API_KEY in .env
+# Configure OPENAI_API_KEY, OPENAI_BASE_URL, and OPENAI_MODEL in .env
 uvicorn app.main:app --reload
 ```
 
@@ -41,8 +41,8 @@ Run tests with `pytest`.
 ## Run with Docker
 
 ```bash
-docker build -t dpp-gemini .
-docker run --rm -p 8000:8000 --env-file .env dpp-gemini
+docker build -t dpp-openai-compatible .
+docker run --rm -p 8000:8000 --env-file .env dpp-openai-compatible
 ```
 
 ## API
@@ -80,7 +80,7 @@ Response shape:
 
 ## Configuration
 
-See `.env.example`. The default model is configurable with `GEMINI_MODEL`; select a model available to your Google AI project. Do not commit API keys.
+See `.env.example`. Configure `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` for your provider. The endpoint must support the OpenAI Chat Completions API with image input, and the selected model must accept images. Do not commit API keys.
 
 ## DPP reference and prompt
 
@@ -92,6 +92,6 @@ The prompt is operational guidance, not a substitute for a formal validator. The
 
 ## Production considerations
 
-Before exposing this service publicly, add authentication/authorization, rate limiting, request timeouts, malware scanning, private object storage, retention/deletion policies, structured logging, metrics, and a durable queue for long-running documents. Gemini calls are billed and may have provider quotas. For sensitive documents, review your organization's data-processing and retention requirements before sending content to an external model.
+Before exposing this service publicly, add authentication/authorization, rate limiting, request timeouts, malware scanning, private object storage, retention/deletion policies, structured logging, metrics, and a durable queue for long-running documents. Model calls may be billed and subject to provider quotas. For sensitive documents, review your organization's data-processing and retention requirements before sending content to an external model.
 
 Parsing is inherently fallible. Preserve source files when permitted, retain page-level output, and route low-confidence or malformed results for human review. Do not use arithmetic or domain assumptions to silently correct values in the source.

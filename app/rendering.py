@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass
 
-import fitz
+import pymupdf as fitz
 from PIL import Image, UnidentifiedImageError
 
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import io
 import logging
 
-from google import genai
-from google.genai import types
+from openai import OpenAI
 from PIL import Image
 
 from app.config import Settings
@@ -15,18 +15,17 @@ from app.rendering import RenderedPage
 logger = logging.getLogger(__name__)
 
 
-class GeminiParser:
+class OpenAIParser:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._client = genai.Client(
-            api_key=settings.gemini_api_key,
-            http_options=types.HttpOptions(
-                timeout=settings.gemini_timeout_seconds * 1000
-            ),
+        self._client = OpenAI(
+            api_key=settings.openai_api_key,
+            base_url=settings.openai_base_url,
+            timeout=settings.openai_timeout_seconds,
         )
 
     async def parse_pages(self, pages: list[RenderedPage]) -> list[dict[str, object]]:
-        """Parse pages in order, limiting concurrent Gemini requests."""
+        """Parse pages in order, limiting concurrent OpenAI-compatible requests."""
         semaphore = asyncio.Semaphore(2)
 
         async def parse_one(page: RenderedPage) -> dict[str, object]:
@@ -40,22 +39,32 @@ class GeminiParser:
     def _parse_page_sync(self, image: Image.Image) -> str:
         image_buffer = io.BytesIO()
         image.save(image_buffer, format="PNG")
-        image_part = types.Part.from_bytes(
-            data=image_buffer.getvalue(),
-            mime_type="image/png",
+        encoded_image = base64.b64encode(image_buffer.getvalue()).decode("ascii")
+        image_url = f"data:image/png;base64,{encoded_image}"
+
+        response = self._client.chat.completions.create(
+            model=self._settings.openai_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": DPP_PAGE_TRANSCRIPTION_PROMPT},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": image_url},
+                        },
+                    ],
+                }
+            ],
+            temperature=0,
         )
 
-        response = self._client.models.generate_content(
-            model=self._settings.gemini_model,
-            contents=[DPP_PAGE_TRANSCRIPTION_PROMPT, image_part],
-            config=types.GenerateContentConfig(
-                temperature=0,
-                response_mime_type="text/plain",
-            ),
+        text = (
+            response.choices[0].message.content.strip()
+            if response.choices and response.choices[0].message.content
+            else ""
         )
-
-        text = (response.text or "").strip()
         if not text:
-            logger.warning("Gemini returned an empty transcription for a page")
-            raise RuntimeError("Gemini returned an empty transcription.")
+            logger.warning("OpenAI-compatible endpoint returned an empty transcription")
+            raise RuntimeError("OpenAI-compatible endpoint returned an empty transcription.")
         return text

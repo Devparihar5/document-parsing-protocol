@@ -4,17 +4,18 @@ import logging
 from typing import Annotated
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from openai import APITimeoutError
 from pydantic import BaseModel
 
 from app.config import get_settings
-from app.parser import GeminiParser
+from app.parser import OpenAIParser
 from app.rendering import DocumentError, render_document
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Document Parsing Protocol — Gemini",
+    title="Document Parsing Protocol — OpenAI-compatible",
     description=(
         "Page-by-page document transcription guided by DPP 0.1. "
         "Output is model-generated and should be validated before downstream use."
@@ -74,8 +75,18 @@ async def parse_document(
         raise HTTPException(status_code=415, detail=str(exc)) from exc
 
     try:
-        parser = GeminiParser(settings)
+        parser = OpenAIParser(settings)
         page_results = await parser.parse_pages(rendered_pages)
+    except APITimeoutError as exc:
+        logger.warning(
+            "Vision provider timed out while parsing %s (timeout: %s seconds per attempt)",
+            filename,
+            settings.openai_timeout_seconds,
+        )
+        raise HTTPException(
+            status_code=504,
+            detail="Vision provider timed out. Increase OPENAI_TIMEOUT_SECONDS or try again later.",
+        ) from exc
     except Exception as exc:
         logger.exception("Document parsing failed for %s", filename)
         # Avoid returning provider internals or uploaded content in the API response.

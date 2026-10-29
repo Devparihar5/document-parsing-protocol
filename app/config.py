@@ -4,12 +4,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    gemini_api_key: str
-    gemini_model: str = "gemini-2.5-flash"
+    openai_api_key: str
+    openai_base_url: str | None = None
+    openai_model: str = "gpt-4o-mini"
     max_upload_mb: int = 25
     max_pdf_pages: int = 50
     pdf_render_dpi: int = 150
-    gemini_timeout_seconds: int = 120
+    openai_timeout_seconds: int = 300
 
     model_config = SettingsConfigDict(
         env_file=".env",
