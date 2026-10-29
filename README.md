@@ -1,4 +1,4 @@
-# Document Parsing Protocol (DPP) — Gemini implementation
+# Document Parsing Protocol (DPP)
 
 A Python/FastAPI starter for page-by-page document parsing with Google's Gemini vision models. It aims to produce faithful Markdown transcripts guided by the DPP 0.1 reference, including HTML tables, page boundaries, and printed page numbers.
 
