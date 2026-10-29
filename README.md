@@ -28,13 +28,22 @@ python -m venv .venv
 source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
 
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 cp .env.example .env
 # Set GEMINI_API_KEY in .env
 uvicorn app.main:app --reload
 ```
 
 Open http://127.0.0.1:8000/docs.
+
+Run tests with `pytest`.
+
+## Run with Docker
+
+```bash
+docker build -t dpp-gemini .
+docker run --rm -p 8000:8000 --env-file .env dpp-gemini
+```
 
 ## API
 
